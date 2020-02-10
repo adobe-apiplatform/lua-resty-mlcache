@@ -1,0 +1,92 @@
+# vim:st=2 sts=2 sw=2 et:
+
+name: Tests
+on: [push, pull_request]
+
+env:
+  JOBS: 2
+  DIR_DOWNLOAD: $HOME/downloads
+  DIR_INSTALL: $HOME/install
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Build OpenResty
+        uses: ./.github/actions/build-openresty
+        with:
+          prefix: ${{ env.DIR_OPENRESTY }}
+          jobs: 2
+
+      #- name: Lint
+      #  run: luacheck lib/
+
+  install_openresty:
+    name: Install OpenResty
+    runs-on: ubuntu-latest
+    env:
+      DIR_OPENRESTY: $DIR_INSTALL/openresty
+    steps:
+      - name: Cache OpenResty
+        id: cache-openresty
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.DIR_OPENRESTY }}
+          key: ${{ runner.os }}-cache-openresty-${{ env.OPENRESTY }}
+
+      - name: Build OpenResty
+        if: steps.cache-openresty.outputs.cache-hit != 'true'
+        run: |
+          wget \
+            -O $DIR_DOWNLOAD/openresty.tar.gz \
+            https://openresty.org/download/openresty-${{ env.OPENRESTY }}.tar.gz
+          tar -zxf $DIR_DOWNLOAD/openresty.tar.gz
+          pushd openresty
+          ./configure \
+            --prefix=$DIR_OPENRESTY \
+            --without-http_ssl_module \
+            -j$JOBS
+          make -j$JOBS
+          make install
+
+      - name: Export $PATH
+        run: echo "::set-env name=PATH::$DIR_INSTALL/openresty/nginx/sbin:$PATH"
+
+  install_luarocks:
+    name: Install LuaRocks
+    runs-on: ubuntu-latest
+    needs: install_openresty
+    env:
+      LUAROCKS: 3.2.1
+      DIR_LUAROCKS: $DIR_INSTALL/luarocks
+    steps:
+      - name: Cache LuaRocks
+        id: cache-luarocks
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.DIR_LUAROCKS }}
+          key: ${{ runner.os }}-cache-luarocks-${{ env.LUAROCKS }}
+
+      - name: Build LuaRocks
+        if: steps.cache-luarocks.outputs.cache-hit != 'true'
+        run: |
+          wget \
+            -O $DIR_DOWNLOAD/luarocks.tar.gz \
+            https://luarocks.github.io/luarocks/releases/luarocks-$LUAROCKS.tar.gz
+          tar -zxf $DIR_DOWNLOAD/luarocks.tar.gz
+          pushd luarocks
+          ./configure \
+            --prefix=$DIR_LUAROCKS \
+            --with-lua=$DIR_OPENRESTY/luajit/include/luajit-2.1 \
+            --lua-suffix=jit
+          make build
+          make install
+
+      - name: Export $PATH
+        run: |
+            echo "::set-env name=PATH::$DIR_INSTALL/luarocks/bin:$PATH"
+            eval $(luarocks path)

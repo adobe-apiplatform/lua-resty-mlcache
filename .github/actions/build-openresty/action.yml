@@ -1,0 +1,13 @@
+# vim:st=2 sts=2 sw=2 et:
+
+name: Build OpenResty
+inputs:
+  version:
+    default: 1.15.8.2
+  prefix:
+    required: true
+  jobs:
+    default: 1
+runs:
+  using: bash
+  main: main.sh
