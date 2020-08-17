@@ -1,8 +1,8 @@
 package = "lua-resty-mlcache"
-version = "2.4.1-1"
+version = "2.4.2-1"
 source = {
-  url = "git://github.com/thibaultcha/lua-resty-mlcache",
-  tag = "2.4.1"
+  url = "git://github.com/adobe-apiplatform/lua-resty-mlcache",
+  tag = "2.4.2"
 }
 description = {
   summary  = "Layered caching library for OpenResty",
@@ -24,7 +24,7 @@ description = {
     - Multiple isolated instances can be created to hold various types of data
       while relying on the *same* `lua_shared_dict` L2 cache.
   ]],
-  homepage = "https://github.com/thibaultcha/lua-resty-mlcache",
+  homepage = "https://github.com/adobe-apiplatform/lua-resty-mlcache",
   license  = "MIT"
 }
 build = {
